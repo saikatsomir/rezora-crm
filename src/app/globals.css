@@ -1,0 +1,33 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg: #F3F6FC; --sidebar: #FFFFFF; --card: #FFFFFF; --elev: #F8FAFF;
+  --fg: #202B45; --muted: #71809A; --line: #E4EAF4; --primary: #2142E7; --accent: #1A35B9;
+  --glow: rgba(33, 66, 231, 0.10); --gridline: rgba(33, 66, 231, 0.045); --noise-op: 0.035;
+}
+.dark {
+  --bg: #0B1120; --sidebar: #10192B; --card: #141F33; --elev: #1B2940;
+  --fg: #F1F5FC; --muted: #9BAAC3; --line: #273650; --primary: #5276F5; --accent: #7893FF;
+  --glow: rgba(82, 118, 245, 0.16); --gridline: rgba(120, 147, 255, 0.05); --noise-op: 0.06;
+}
+@theme inline {
+  --color-bg: var(--bg); --color-sidebar: var(--sidebar); --color-card: var(--card); --color-elev: var(--elev);
+  --color-fg: var(--fg); --color-muted: var(--muted); --color-line: var(--line);
+  --color-primary: var(--primary); --color-accent: var(--accent);
+}
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-inter), system-ui, sans-serif; }
+
+/* Layered background: ambient glow + delicate grid + grain */
+.app-bg { position: fixed; inset: 0; z-index: -1; pointer-events: none; background:
+  radial-gradient(900px 500px at 85% -10%, var(--glow), transparent 60%),
+  radial-gradient(700px 420px at -5% 105%, var(--glow), transparent 60%),
+  linear-gradient(var(--gridline) 1px, transparent 1px) 0 0 / 44px 44px,
+  linear-gradient(90deg, var(--gridline) 1px, transparent 1px) 0 0 / 44px 44px; }
+.app-bg::after { content: ""; position: absolute; inset: 0; opacity: var(--noise-op);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 1px 2px rgba(16, 28, 66, 0.04); }
+.input { width: 100%; background: var(--elev); border: 1px solid var(--line); border-radius: 10px; padding: 0.6rem 0.8rem; font-size: 0.875rem; outline: none; }
+.input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--glow); }

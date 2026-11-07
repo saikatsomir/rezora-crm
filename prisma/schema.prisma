@@ -1,0 +1,225 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  MODERATOR
+}
+enum BusinessSize {
+  GROWTH
+  BUSINESS
+  STARTER
+  SUBSCRIPTION
+}
+enum RunningAds {
+  YES
+  NO
+  UNKNOWN
+}
+enum MeetingType {
+  ONLINE
+  OFFLINE
+  PHONE_CALL
+}
+enum MeetingStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+enum PaymentStatus {
+  PENDING
+  PAID
+  PARTIAL
+  REFUNDED
+}
+enum LeadCategory {
+  FASHION_CLOTHING
+  THREE_PIECE_SAREE
+  MENS_FASHION
+  WOMENS_FASHION
+  COSMETICS_BEAUTY
+  ELECTRONICS_GADGETS
+  MOBILE_ACCESSORIES
+  FOOD_RESTAURANT
+  GROCERY_SUPERSHOP
+  FURNITURE_HOME_DECOR
+  LIFESTYLE_PRODUCTS
+  JEWELRY_ACCESSORIES
+  FOOTWEAR
+  HEALTH_WELLNESS
+  EDUCATION_TRAINING
+  REAL_ESTATE
+  TRAVEL_TOURISM
+  AUTOMOTIVE
+  DIGITAL_PRODUCTS
+  ECOMMERCE
+  OTHER
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(MODERATOR)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  createdLeads  Lead[]    @relation("LeadCreatedBy")
+  assignedLeads Lead[]    @relation("LeadAssignedTo")
+  activities    LeadActivity[]
+  notes         LeadNote[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+  @@index([role, isActive])
+}
+
+model Lead {
+  id           String        @id @default(cuid())
+  businessName String
+  facebookUrl  String?
+  instagramUrl String?
+  phone        String?
+  category     LeadCategory  @default(OTHER)
+  businessSize BusinessSize?
+  email        String?
+  called       Boolean       @default(false)
+  runningAds   RunningAds    @default(UNKNOWN)
+  ownerNumber  String?
+  servicePrice Decimal?      @db.Decimal(12, 2)
+  assignedToId String?
+  createdById  String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  assignedTo   User?         @relation("LeadAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy    User          @relation("LeadCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  notes        LeadNote[]
+  activities   LeadActivity[]
+  statusHistory LeadStatusHistory[]
+  meetings     Meeting[]
+  payments     Payment[]
+  @@index([businessSize])
+  @@index([category])
+  @@index([runningAds])
+  @@index([createdAt])
+  @@index([businessName])
+  @@index([phone])
+  @@index([email])
+}
+
+model LeadNote {
+  id           String    @id @default(cuid())
+  leadId       String
+  authorId     String
+  content      String
+  reminderDate DateTime?
+  reminderTime String?
+  completed    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  lead         Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  author       User      @relation(fields: [authorId], references: [id])
+  @@index([leadId])
+  @@index([reminderDate, completed])
+}
+
+model LeadActivity {
+  id        String   @id @default(cuid())
+  leadId    String
+  userId    String?
+  type      String
+  summary   String
+  createdAt DateTime @default(now())
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@index([leadId, createdAt])
+  @@index([createdAt])
+}
+
+model LeadStatusHistory {
+  id        String   @id @default(cuid())
+  leadId    String
+  field     String
+  fromValue String?
+  toValue   String?
+  changedBy String?
+  createdAt DateTime @default(now())
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  @@index([leadId, createdAt])
+}
+
+model Meeting {
+  id         String        @id @default(cuid())
+  leadId     String
+  title      String
+  date       DateTime
+  startTime  String
+  endTime    String?
+  type       MeetingType   @default(ONLINE)
+  link       String?
+  location   String?
+  agenda     String?
+  notes      String?
+  outcome    String?
+  nextAction String?
+  status     MeetingStatus @default(SCHEDULED)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  lead       Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  @@index([date, status])
+  @@index([leadId])
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  leadId      String
+  amount      Decimal       @db.Decimal(12, 2)
+  paymentDate DateTime
+  method      String?
+  reference   String?
+  status      PaymentStatus @default(PENDING)
+  notes       String?
+  createdAt   DateTime      @default(now())
+  lead        Lead          @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  @@index([paymentDate, status])
+  @@index([leadId])
+}
+
+model ClientCategory {
+  id    String       @id @default(cuid())
+  size  BusinessSize @unique
+  label String
+  color String?
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, read])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String?
+  entityId  String?
+  meta      Json?
+  ip        String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@index([userId, createdAt])
+  @@index([entity, entityId])
+}
